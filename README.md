@@ -4,9 +4,9 @@ A minimal Python utility to assemble all source files into a single organized do
 
 ## Features
 
-- 🌳 **File tree visualization** - Shows your project structure
+-  **File tree visualization** - Shows your project structure
 -  **Source code collection** - Gathers all code files into one document
--  **Smart filtering** - Ignores common build/cache directories and sensitive files
+-  **Filtering** - Ignores common build/cache directories and sensitive files
 -  **Fast & lightweight** - Pure Python with minimal dependencies
 
 ## Default File Types
@@ -18,13 +18,20 @@ A minimal Python utility to assemble all source files into a single organized do
 - Xcode project files (`.pbxproj`, `.entitlements`)
 - Configuration files (`pyproject.toml`)
 
-You can add or change these by altering the sets at the top of gather_code.py
+You can add to or change these by altering the sets at the top of gather_code.py
 
 ## Usage
 
 ```bash
 # Generate documentation for current directory
 python gather_code.py
+```
+
+You can also add an alias for use in other locations. To do so, run these lines in this directory:
+
+```bash
+echo "alias gather_code='python3 $(pwd)/gather_code.py'" >> ~/.bashrc
+source ~/.bashrc
 ```
 
 ## Output
