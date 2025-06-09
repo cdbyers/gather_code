@@ -110,7 +110,7 @@ def main():
     
     # Generate filename with date
     date_str = datetime.now().strftime("%Y-%m-%d")
-    filename = f"project_{date_str}.txt"
+    filename = f"gathered_code_{date_str}.txt"
     
     # Build content sections
     header = ["=" * 80, f"PROJECT: {project_name}", "=" * 80, ""]
