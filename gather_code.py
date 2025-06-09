@@ -23,7 +23,24 @@ IGNORE = {
     # Logs & temp
     "*.log", "logs", "tmp", "temp", ".tmp", "*.pid", "*.lock"
 }
-EXTENSIONS = {".py", ".html", ".sh", ".css", ".js", ".swift", ".pbxproj", ".entitlements"}
+EXTENSIONS = {
+    # Scripts & Code
+    ".py", ".r", ".js", ".ts", ".jsx", ".tsx", ".sh", ".bash", ".zsh", ".fish",
+    # Web
+    ".html", ".css", ".scss", ".sass", ".less", ".vue", ".svelte",
+    # Mobile & Desktop
+    ".swift", ".kt", ".java", ".dart", ".cs", ".cpp", ".c", ".h", ".hpp",
+    # Config & Data
+    ".json", ".yaml", ".yml", ".toml", ".xml", ".ini", ".cfg", ".conf",
+    # Database & Query
+    ".sql", ".graphql", ".gql",
+    # Documentation & Markup
+    ".md", ".rst", ".tex",
+    # Build & Project
+    ".dockerfile", ".makefile", ".cmake", ".gradle", ".pbxproj", ".entitlements",
+    # Functional & Other
+    ".go", ".rs", ".rb", ".php", ".lua", ".r", ".scala", ".clj", ".hs"
+}
 SPECIAL = {"pyproject.toml"}
 
 
@@ -86,16 +103,22 @@ def format_tree(path=".", prefix="", is_last=True):
 
 def main():
     """Generate assembled code documentation."""
+    from datetime import datetime
+    
     project_name = os.path.basename(os.getcwd())
     files = gather_files()
     
+    # Generate filename with date
+    date_str = datetime.now().strftime("%Y-%m-%d")
+    filename = f"project_{date_str}.txt"
+    
     # Build content sections
     header = ["=" * 80, f"PROJECT: {project_name}", "=" * 80, ""]
-    tree_section = [format_tree().strip(), ""]
+    tree_section = [format_tree().strip(), ""] 
     files_header = ["=" * 80, "FILES", "=" * 80, ""]
     
     content = header + tree_section + files_header
-    
+   
     # Add file contents
     for file_path in sorted(files.keys()):
         content.extend([
@@ -103,14 +126,13 @@ def main():
             f"# {file_path}",
             f"{'#' * 80}\n",
             files[file_path]
-        ])
-    
+        ]) 
+   
     # Write output
-    with open("assembled_code.txt", "w", encoding="utf-8") as f:
+    with open(filename, "w", encoding="utf-8") as f:
         f.write("\n".join(content))
     
-    print("Documentation written to assembled_code.txt")
-
+    print(f"Documentation written to {filename}")
 
 if __name__ == "__main__":
     main()
