@@ -1,89 +1,115 @@
 import os
-from pathlib import Path
 
-IGNORE_DIRS = {".git", "__pycache__", "venv", "node_modules", "xcuserdata"}
-CODE_EXTENSIONS = {".py", ".html", ".sh", ".css", ".js", ".swift", ".pbxproj", ".entitlements"}
-SPECIAL_FILES = {"pyproject.toml"}
+IGNORE = {
+    # Version control & build
+    ".git", ".svn", ".hg", "__pycache__", "node_modules", "venv", "env", ".venv",
+    "dist", "build", ".next", ".nuxt", "target", "bin", "obj",
+    
+    # IDE & editors
+    ".vscode", ".idea", "xcuserdata", ".vs", "*.swp", "*.swo", ".DS_Store",
+    
+    # Secrets & credentials
+    ".env", ".envrc", ".secrets", ".aws", ".ssh", "id_rsa", "id_ed25519",
+    "*.key", "*.pem", "*.p12", "*.pfx", "*.jks", "*.keystore", 
+    "credentials.json", "secrets.json", "config.json", ".netrc",
+    "api_keys.txt", "passwords.txt", ".password", "auth.json",
+    
+    # Certificates
+    "*.crt", "*.cer", "*.ca-bundle", "*.p7b", "*.p7c", "*.der",
+    
+    # Database files
+    "*.db", "*.sqlite", "*.sqlite3", "*.mdb",
+    
+    # Logs & temp
+    "*.log", "logs", "tmp", "temp", ".tmp", "*.pid", "*.lock"
+}
+EXTENSIONS = {".py", ".html", ".sh", ".css", ".js", ".swift", ".pbxproj", ".entitlements"}
+SPECIAL = {"pyproject.toml"}
 
 
 def should_include_file(file_path):
-    """Check if file should be included based on extension or name."""
-    return file_path.suffix in CODE_EXTENSIONS or file_path.name in SPECIAL_FILES
+    """Check if file should be included."""
+    filename = os.path.basename(file_path)
+    _, ext = os.path.splitext(filename)
+    path_parts = file_path.split(os.sep)
+    
+    return (ext in EXTENSIONS or filename in SPECIAL) and \
+           not any(part in IGNORE for part in path_parts)
 
 
 def read_file_safe(file_path):
     """Safely read file content."""
     try:
-        return file_path.read_text(encoding="utf-8")
-    except Exception as e:
-        return f"Error reading file: {e}"
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except Exception:
+        return f"Error reading {file_path}"
 
 
-def gather_files(root_path="."):
-    """Gather all code files and their contents."""
-    root = Path(root_path)
+def gather_files(root="."):
+    """Collect all relevant files and their contents."""
     files = {}
-    
-    for path in root.rglob("*"):
-        if (path.is_file() and 
-            should_include_file(path) and 
-            not any(part in IGNORE_DIRS for part in path.parts)):
-            files[str(path.relative_to(root))] = read_file_safe(path)
-    
+    for root_dir, dirs, filenames in os.walk(root):
+        # Remove ignored directories to prevent traversal
+        dirs[:] = [d for d in dirs if d not in IGNORE]
+        
+        for filename in filenames:
+            file_path = os.path.join(root_dir, filename)
+            if should_include_file(file_path):
+                rel_path = os.path.relpath(file_path, root)
+                files[rel_path] = read_file_safe(file_path)
     return files
 
 
-def format_tree(path=Path("."), prefix="", is_last=True):
-    """Generate tree structure as string."""
-    if any(part in IGNORE_DIRS for part in path.parts):
+def format_tree(path=".", prefix="", is_last=True):
+    """Generate file tree structure."""
+    if os.path.basename(path) in IGNORE:
         return ""
     
     connector = "└── " if is_last else "├── "
-    tree = f"{prefix}{connector}{path.name}\n"
+    result = f"{prefix}{connector}{os.path.basename(path)}\n"
     
-    if path.is_dir():
+    if os.path.isdir(path):
         try:
-            children = sorted([p for p in path.iterdir() 
-                             if not any(part in IGNORE_DIRS for part in p.parts)])
-            for i, child in enumerate(children):
-                extension = "    " if is_last else "│   "
-                tree += format_tree(child, prefix + extension, i == len(children) - 1)
+            entries = [os.path.join(path, name) for name in os.listdir(path)]
+            entries = [e for e in entries if os.path.basename(e) not in IGNORE]
+            entries.sort(key=lambda x: (not os.path.isdir(x), os.path.basename(x).lower()))
+            
+            for i, entry in enumerate(entries):
+                next_prefix = prefix + ("    " if is_last else "│   ")
+                result += format_tree(entry, next_prefix, i == len(entries) - 1)
         except PermissionError:
             pass
     
-    return tree
+    return result
 
 
 def main():
-    """Generate documentation file."""
-    project_name = Path.cwd().name
+    """Generate assembled code documentation."""
+    project_name = os.path.basename(os.getcwd())
     files = gather_files()
     
-    content = [
-        "=" * 80,
-        f"FILE TREE STRUCTURE FOR: {project_name}",
-        "=" * 80,
-        "",
-        format_tree().strip(),
-        "",
-        "=" * 80,
-        "FILE CONTENTS", 
-        "=" * 80,
-        ""
-    ]
+    # Build content sections
+    header = ["=" * 80, f"PROJECT: {project_name}", "=" * 80, ""]
+    tree_section = [format_tree().strip(), ""]
+    files_header = ["=" * 80, "FILES", "=" * 80, ""]
     
+    content = header + tree_section + files_header
+    
+    # Add file contents
     for file_path in sorted(files.keys()):
         content.extend([
-            "#" * 80,
-            f"# FILE: {file_path}",
-            "#" * 80,
-            "",
-            files[file_path],
-            ""
+            f"\n{'#' * 80}",
+            f"# {file_path}",
+            f"{'#' * 80}\n",
+            files[file_path]
         ])
     
-    Path("code_docs.txt").write_text("\n".join(content), encoding="utf-8")
-    print("Documentation written to code_docs.txt")
+    # Write output
+    with open("assembled_code.txt", "w", encoding="utf-8") as f:
+        f.write("\n".join(content))
+    
+    print("Documentation written to assembled_code.txt")
 
 
 if __name__ == "__main__":
